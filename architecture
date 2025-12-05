@@ -1,0 +1,118 @@
+# Data Warehouse Schema Design
+
+This repository contains a star-schema data warehouse optimized for global retail
+inventory analytics across 500+ warehouses and 100K+ SKUs, processing over 1M+
+inventory transactions daily.
+
+---
+
+## Distribution & Sort Key Justification
+
+### **Dimension Tables (dim_products, dim_warehouses, dim_suppliers, dim_date)**
+ #### All dimension tables use `DISTSTYLE ALL` because: 
+  - Dimensions are small and frequently joined with the large fact table.  
+  - Replicating them to all nodes eliminates data shuffling during joins.  
+
+ #### All dimension tables use `SORTKEY` on the surrogate primary key:
+  - Keeps layout stable and enables efficient lookups.
+
+### **Fact Table (fact_inventory_transactions)**
+
+#### **Distribution Key**
+`warehouse_id` is chosen as the `DISTKEY` because:
+- The workload contains frequent warehouse-scoped analytics.  
+- It distributes data evenly across nodes (500+ warehouses).  
+- Future fact tables using the same grain can co-locate on the same key.  
+- Minimizes cross-node shuffling during joins and aggregations.
+
+#### **Sort Key**
+The fact table uses COMPOUND SORTKEY (transaction_date, warehouse_id, product_id):
+- transaction_date: almost all analytical queries filter by date ranges, setting as a sort key can efficiently zone-map pruning.
+- warehouse_id: common filter and grouping key for operational reporting.
+- product_id: common filter and grouping key for operational reporting.
+
+---
+
+## Fact & Dim Tabel Schema
+
+CREATE TABLE fact_inventory_transactions (
+    transaction_id BIGINT NOT NULL ENCODE AZ64,
+    transaction_timestamp TIMESTAMP NOT NULL ENCODE AZ64,
+    warehouse_id INT NOT NULL ENCODE AZ64 DISTKEY,
+    product_id INT NOT NULL ENCODE AZ64,
+    sku VARCHAR(50) NOT NULL ENCODE ZSTD,
+    transaction_type VARCHAR(20) NOT NULL ENCODE ZSTD,
+    quantity NUMERIC(18,2) NOT NULL ENCODE AZ64,
+    unit_cost NUMERIC(18,4) NOT NULL ENCODE AZ64,
+    total_value NUMERIC(18,4) NOT NULL ENCODE AZ64,
+    source_system  VARCHAR(30) NOT NULL ENCODE ZSTD,
+    batch_id INT NOT NULL ENCODE AZ64
+)
+COMPOUND SORTKEY (transaction_timestamp, warehouse_id, product_id);
+
+CREATE TABLE dim_warehouses (
+    warehouse_id INT NOT NULL ENCODE AZ64,
+    location VARCHAR(50) NOT NULL ENCODE ZSTD,
+    region VARCHAR(30) NOT NULL ENCODE ZSTD,
+    capacity NUMERIC(18,2) NOT NULL ENCODE AZ64
+)
+DISTSTYLE ALL
+SORTKEY (warehouse_id);
+
+CREATE TABLE dim_products (
+    product_id INT NOT NULL ENCODE AZ64,
+    sku VARCHAR(50) NOT NULL ENCODE ZSTD,
+    category VARCHAR(30) NOT NULL ENCODE ZSTD,
+    subcategory VARCHAR(30) NOT NULL ENCODE ZSTD,
+    brand VARCHAR(30) NOT NULL ENCODE ZSTD,
+    supplier VARCHAR(30) NOT NULL ENCODE ZSTD
+)
+DISTSTYLE ALL
+SORTKEY (product_id);
+
+CREATE TABLE dim_date (
+    product_id INT NOT NULL ENCODE AZ64,
+    sku VARCHAR(50) NOT NULL ENCODE ZSTD,
+    category VARCHAR(30) NOT NULL ENCODE ZSTD,
+    subcategory VARCHAR(30) NOT NULL ENCODE ZSTD,
+    brand VARCHAR(30) NOT NULL ENCODE ZSTD,
+    supplier VARCHAR(30) NOT NULL ENCODE ZSTD
+)
+DISTSTYLE ALL
+SORTKEY (product_id);
+
+CREATE TABLE dim_suppliers (
+    supplier_id INT NOT NULL ENCODE AZ64,
+    supplier_name VARCHAR(100) NOT NULL ENCODE ZSTD,
+    country VARCHAR(50) NOT NULL ENCODE ZSTD,
+    rating NUMERIC(3,2) NULL ENCODE AZ64,   -- 0.00~5.00
+    status VARCHAR(20) NOT NULL ENCODE ZSTD,   -- Active / Inactive
+    created_date DATE NOT NULL ENCODE AZ64,
+)
+DISTSTYLE ALL
+SORTKEY (supplier_id);
+
+CREATE TABLE dim_date (
+    date_value          DATE          NOT NULL ENCODE AZ64,
+
+    -- Calendar attributes
+    year                INT           NOT NULL ENCODE AZ64,
+    quarter             INT           NOT NULL ENCODE AZ64,
+    month               INT           NOT NULL ENCODE AZ64,
+    month_name          VARCHAR(15)   NOT NULL ENCODE ZSTD,
+    day                 INT           NOT NULL ENCODE AZ64,
+    day_of_week         INT           NOT NULL ENCODE AZ64,
+    day_name            VARCHAR(15)   NOT NULL ENCODE ZSTD,
+    week_of_year        INT           NOT NULL ENCODE AZ64,
+
+    -- Fiscal calendar attributes
+    fiscal_year         INT           NOT NULL ENCODE AZ64,
+    fiscal_quarter      INT           NOT NULL ENCODE AZ64,
+    fiscal_period       INT           NOT NULL ENCODE AZ64,   -- some companies have 12 or 13 periods
+    fiscal_week         INT           NOT NULL ENCODE AZ64,
+
+    is_weekend          BOOLEAN       NOT NULL ENCODE ZSTD,
+    is_holiday          BOOLEAN       NOT NULL ENCODE ZSTD,
+)
+DISTSTYLE ALL
+SORTKEY (date_key);
