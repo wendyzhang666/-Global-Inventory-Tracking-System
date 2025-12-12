@@ -22,7 +22,7 @@ The CFO requests:
 
 ## Optimization Strategy
 
-1. Physical Table Optimization (Sort Key + Dist Key)
+### 1. Physical Table Optimization (Sort Key + Dist Key)
   - SORTKEY: transaction_timestamp
     - Enables zone-map pruning
     - Limits scan to the last 36 months, instead of the full 10B rows
@@ -33,20 +33,20 @@ The CFO requests:
     - Prevents data shuffling across nodes
     - Distributes data evenly (500 warehouses)
 
-2. Pre-Aggregated Monthly Summary (month × warehouse × category)
+### 2. Pre-Aggregated Monthly Summary (month × warehouse × category)
   - Create a summary structure at: month × warehouse_id × product_category. This supports:
     - Monthly trend analysis
     - YOY calculation with LAG(12)
     - Small data volume (~900k rows)
   This summary table replaces repeated aggregation over 10B fact rows.
 
-3. Incremental Materialized View for 3-Year Trend
+### 3. Incremental Materialized View for 3-Year Trend
   - Implement the monthly summary as an incrementally refreshed MV:
     - REFRESH MATERIALIZED VIEW processes only new fact rows
     - No need to recompute all 3 years
     - CFO query reads directly from the MV, typical runtime: < 5 seconds
 
-4. Offload Cold Data (> 3 Years) to S3 via Redshift Spectrum
+### 4. Offload Cold Data (> 3 Years) to S3 via Redshift Spectrum
   - Move older-than-3-years data to S3 in Parquet format
   - Expose it as an external table using Redshift Spectrum
   - Keep only 3 years of hot data in Redshift
