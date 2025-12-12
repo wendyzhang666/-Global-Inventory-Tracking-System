@@ -1,22 +1,22 @@
 # Query Optimization Report
 
 ## Original Performance
-- Execution time: 120 seconds
-- Data scanned: 500 GB
-- Bottlenecks:
-- 1. DS_DIST_BOTH join
+Execution time: 120 seconds
+Data scanned: 500 GB
+Bottlenecks:
+1. DS_DIST_BOTH join
 - Redshift redistributed both tables during the join because the fact table’s distkey did not match the join key.
-- 2. No zone-map pruning
+2. No zone-map pruning
 - The fact table lacked a proper sortkey, so the filter on transaction_timestamp caused a full table scan.
-- 3. Repeated aggregation on raw fact data
+3. Repeated aggregation on raw fact data
 - Each query aggregated millions of transaction-level rows instead of using a pre-aggregated structure.
 
 ## Optimizations Applied
-- 1. Changed DISTKEY from product_id to warehouse_id
+1. Changed DISTKEY from product_id to warehouse_id
 - Workload analysis showed queries frequently join on warehouse_id.
 - Fact and dimension tables now share the same distribution key, enabling local joins (DS_DIST_NONE)
 - Eliminates expensive data shuffling across nodes.
-- 2. Added SORTKEY on transaction_timestamp
+2. Added SORTKEY on transaction_timestamp
 - Queries consistently filter on: WHERE transaction_timestamp >= '2023-01-01'
 - Adding a sortkey allows Redshift to use zone-map pruning, scanning only recent data blocks instead of the entire table.
 - This dramatically reduces I/O and improves scan performance.
