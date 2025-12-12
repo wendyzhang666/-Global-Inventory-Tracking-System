@@ -1,5 +1,5 @@
-Large-Scale Inventory Trend Optimization (10B Row Scenario)
-📌 Scenario
+# Large-Scale Inventory Trend Optimization (10B Row Scenario)
+## Scenario
 
 The CFO requests:
 
