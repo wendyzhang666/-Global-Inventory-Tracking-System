@@ -1,0 +1,68 @@
+=============================
+EXPLAIN PLAN - BEFORE TUNING
+=============================
+
+-- Command:
+-- EXPLAIN
+-- SELECT 
+--     w.warehouse_name,
+--     p.product_category,
+--     DATE_TRUNC('month', t.transaction_timestamp) AS month,
+--     SUM(t.quantity) AS total_quantity,
+--     SUM(t.quantity * t.unit_cost) AS total_value
+-- FROM fact_inventory_transactions t
+-- JOIN dim_warehouses w ON t.warehouse_id = w.warehouse_id
+-- JOIN dim_products p   ON t.product_id   = p.product_id
+-- WHERE t.transaction_timestamp >= '2023-01-01'
+--   AND w.region = 'North America'
+-- GROUP BY 1, 2, 3
+-- ORDER BY month DESC, total_value DESC;
+
+
+XN Merge  (cost=1500000.00..1505000.00 rows=80000 width=96)
+  ->  XN Sort  (cost=1500000.00..1502000.00 rows=80000 width=96)
+        Sort Key: date_trunc('month'::text, t.transaction_timestamp) DESC, sum((t.quantity * t.unit_cost)) DESC
+        ->  XN HashAggregate  (cost=1200000.00..1300000.00 rows=80000 width=96)
+              Group Key: w.warehouse_name, p.product_category, date_trunc('month'::text, t.transaction_timestamp)
+              ->  XN Hash Join DS_BCAST_INNER  (cost=800000.00..1100000.00 rows=500000 width=96)
+                    Hash Cond: (t.product_id = p.product_id)
+                    ->  XN Hash Join DS_DIST_BOTH  (cost=400000.00..700000.00 rows=500000 width=96)
+                          Hash Cond: (t.warehouse_id = w.warehouse_id)
+                          ->  XN Seq Scan on fact_inventory_transactions t  (cost=0.00..400000.00 rows=2000000 width=64)
+                                Filter: (transaction_timestamp >= '2023-01-01'::timestamp without time zone)
+                          ->  XN Seq Scan on dim_warehouses w  (cost=0.00..10000.00 rows=5000 width=32)
+                                Filter: ((region)::text = 'North America'::text)
+                    ->  XN Seq Scan on dim_products p  (cost=0.00..5000.00 rows=2000 width=32)
+
+-- Problems visible in this plan:
+-- - DS_DIST_BOTH: both tables redistributed during the join.
+-- - Seq Scan on fact without zone-map pruning.
+-- - Aggregation is done directly on transaction-level data every time.
+
+
+============================
+EXPLAIN PLAN - AFTER TUNING
+(using fact tuning + MV)
+============================
+
+-- Command:
+-- EXPLAIN
+-- SELECT
+--     warehouse_name,
+--     product_category,
+--     month,
+--     total_quantity,
+--     total_value
+-- FROM mv_monthly_inventory
+-- ORDER BY month DESC, total_value DESC;
+
+
+XN Merge  (cost=50000.00..52000.00 rows=8000 width=96)
+  ->  XN Sort  (cost=50000.00..51000.00 rows=8000 width=96)
+        Sort Key: month DESC, total_value DESC
+        ->  XN Seq Scan on mv_monthly_inventory  (cost=0.00..30000.00 rows=8000 width=96)
+
+-- Notes:
+-- - The heavy join + aggregation work has been pushed into the materialized view.
+-- - The reporting query now scans only the pre-aggregated MV.
+-- - No DS_DIST_BOTH or large fact table scan appears in this plan.
