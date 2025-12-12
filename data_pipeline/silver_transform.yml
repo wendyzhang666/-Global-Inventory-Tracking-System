@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: silver_transform
+    description: "Cleaned, deduplicated inventory transactions with data quality flags"
+
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique  # dedupe requirement
+      - name: transaction_timestamp
+        tests:
+          - not_null
+      - name: warehouse_id
+        tests:
+          - not_null
+          - relationships:
+              to: dim_warehouse
+              field: warehouse_id
+      - name: product_id
+        tests:
+          - not_null
+      - name: quantity
+        tests:
+          - not_null
