@@ -1,37 +1,29 @@
 # Large-Scale Inventory Trend Optimization (10B Row Scenario)
+
 ## Scenario
 
 The CFO requests:
 
 “Show me inventory value trends for the past 3 years, broken down by product category and warehouse, with year-over-year comparison.”
 
-Dataset size: 10 billion+ transaction rows
+- Dataset size: 10 billion+ transaction rows
 
-Performance requirement: Query must run in < 30 seconds
+- Performance requirement: Query must run in < 30 seconds
 
-Output grain:
+- Output grain:
 
-36 months
+  - 36 months
 
-50 product categories
+  - 50 product categories
 
-500 warehouses
+  - 500 warehouses
 
-Monthly trend + YOY comparison
+  - Monthly trend + YOY comparison
 
-🎯 Requirements
+## Optimization Strategy
 
-Avoid scanning all 10B rows
-
-Support monthly trend + YoY (month vs. month-12)
-
-Maintain fast, predictable performance
-
-Keep access to full historical data (> 3 years)
-
-✅ Optimization Strategy
 1. Physical Table Optimization (Sort Key + Dist Key)
-SORTKEY: transaction_timestamp
+- SORTKEY: transaction_timestamp
 
 Enables zone-map pruning
 
