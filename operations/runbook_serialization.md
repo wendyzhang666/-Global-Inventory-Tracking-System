@@ -54,14 +54,16 @@ No data loss is expected.
 ```
 
 3. Retrieve full SQL text for failed queries
+```sql
     SELECT
       query,
       LISTAGG(text, '') WITHIN GROUP (ORDER BY sequence) AS full_sql
     FROM stl_querytext
     WHERE query IN (:query_id_1, :query_id_2)
     GROUP BY 1;
+```
 
-4. Confirm root cause
+5. Confirm root cause
 
     Verify that multiple jobs are writing to the same target table
     
