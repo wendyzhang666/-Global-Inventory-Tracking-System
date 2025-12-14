@@ -15,7 +15,7 @@ This document covers:
 
 The design prioritizes reliability, data durability, and operational simplicity while balancing cost by creating DR compute resources only during failover events.
 
-
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    PRIMARY REGION (US-East-1)                │
 │                                                              │
