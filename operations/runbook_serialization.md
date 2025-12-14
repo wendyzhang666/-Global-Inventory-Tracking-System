@@ -88,7 +88,7 @@ No data loss is expected.
     
     - All steps are logged for debugging
     
-3: Scheduler-level protection (Recommended)
+3: Scheduler-level protection
 
     Use Airflow Pools:
     
@@ -102,10 +102,11 @@ No data loss is expected.
     
     - Target table row counts updated
 2. Monitor serialization errors
-     SELECT COUNT(*)
+   
+  SELECT COUNT(*)
   FROM stl_error
   WHERE err_reason ILIKE '%serializ%'
-    AND starttime > dateadd(minute, -30, getdate());
+  AND starttime > dateadd(minute, -30, getdate());
    
 ## Post-Incident
 1. Follow-up actions
@@ -119,16 +120,13 @@ No data loss is expected.
   - Enforce Python-level locking for all write operations
 
   - Add retry logic for transient serialization errors
+  - Use Airflow task dependencies and pools to control concurrency 
 
-Use Airflow task dependencies and pools to control concurrency 
-
-Python Orchestration Script
+## Python Orchestration Script
+```
 import psycopg2
 import time
 
-# ---------------------------
-# Configuration
-# ---------------------------
 RS_CONN = dict(
     host="your-redshift-endpoint",
     port=5439,
