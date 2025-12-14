@@ -38,7 +38,8 @@ No data loss is expected.
 
 ## Investigation Steps (15 minutes)
 1. Identify serialization errors
-    SELECT
+、、、
+   SELECT
       q.query,
       q.starttime,
       q.endtime,
@@ -50,8 +51,9 @@ No data loss is expected.
     WHERE q.starttime >= dateadd(hour, -6, getdate())
       AND e.err_reason ILIKE '%serializ%'
     ORDER BY q.starttime DESC;
+、、、
 
-2. Retrieve full SQL text for failed queries
+3. Retrieve full SQL text for failed queries
     SELECT
       query,
       LISTAGG(text, '') WITHIN GROUP (ORDER BY sequence) AS full_sql
@@ -59,7 +61,7 @@ No data loss is expected.
     WHERE query IN (:query_id_1, :query_id_2)
     GROUP BY 1;
 
-3. Confirm root cause
+4. Confirm root cause
 
     Verify that multiple jobs are writing to the same target table
     
