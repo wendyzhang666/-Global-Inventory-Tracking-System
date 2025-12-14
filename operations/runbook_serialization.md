@@ -106,11 +106,12 @@ No data loss is expected.
     
     - Target table row counts updated
 2. Monitor serialization errors
-   
+```sql   
   SELECT COUNT(*)
   FROM stl_error
   WHERE err_reason ILIKE '%serializ%'
   AND starttime > dateadd(minute, -30, getdate());
+```
    
 ## Post-Incident
 1. Follow-up actions
