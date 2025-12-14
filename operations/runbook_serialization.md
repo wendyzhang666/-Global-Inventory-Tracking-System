@@ -38,7 +38,7 @@ No data loss is expected.
 
 ## Investigation Steps (15 minutes)
 1. Identify serialization errors
-、、、
+```sql
    SELECT
       q.query,
       q.starttime,
@@ -51,7 +51,7 @@ No data loss is expected.
     WHERE q.starttime >= dateadd(hour, -6, getdate())
       AND e.err_reason ILIKE '%serializ%'
     ORDER BY q.starttime DESC;
-、、、
+```
 
 3. Retrieve full SQL text for failed queries
     SELECT
