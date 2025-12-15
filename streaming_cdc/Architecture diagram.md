@@ -33,7 +33,7 @@ It captures **INSERT, UPDATE, and DELETE** operations from the source inventory 
 
 This CDC architecture is well suited for high-throughput inventory systems that require both **real-time operational visibility** and **near real-time analytics**.
 
-、、、text
+```text
 
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │                     SOURCE DATABASE (PostgreSQL / MySQL)                      │
