@@ -11,7 +11,7 @@ The system reflects real-world e-commerce complexity by combining **batch proces
 ## Business Context
 
 **Scenario:**  
-You are the Data Engineering Lead at **GlobalRetail Inc.**, a global e-commerce company managing inventory across multiple regions and channels.
+You are at **GlobalRetail Inc.**, a global e-commerce company managing inventory across multiple regions and channels.
 
 **Scale:**
 - 500+ warehouses across North America, Europe, and Asia  
