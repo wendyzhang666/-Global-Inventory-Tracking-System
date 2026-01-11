@@ -20,6 +20,7 @@ cleanup.policy=delete
 retention.ms=2592000000          # 30 days
 min.insync.replicas=2
 compression.type=lz4
+```
 
 ### restock.alerts — Low-volume Alert Stream 
 Low-stock and replenishment signals for operations.
@@ -31,6 +32,7 @@ cleanup.policy=delete
 retention.ms=604800000           # 7 days
 min.insync.replicas=2
 compression.type=lz4
+```
 
 ### inventory.current.state — Compacted State Topic
 Latest inventory snapshot per (warehouse_id, product_id)
@@ -43,6 +45,7 @@ retention.ms=-1                  # keep forever (controlled by compaction)
 min.insync.replicas=2
 delete.retention.ms=86400000     # keep tombstones for 1 day
 compression.type=lz4
+```
 
 ### supplier.deliveries — Event Stream
 Supplier shipment and receipt events.
@@ -54,6 +57,7 @@ cleanup.policy=delete
 retention.ms=7776000000          # 90 days
 min.insync.replicas=2
 compression.type=lz4
+```
 
 ### order.fulfillment — Event Stream
 Order lifecycle events: pick → pack → ship → deliver.
@@ -65,6 +69,7 @@ cleanup.policy=delete
 retention.ms=2592000000          # 30 days
 min.insync.replicas=2
 compression.type=lz4
+```
 
 ## 2. Kafka Consumer Groups
 
@@ -75,6 +80,7 @@ Full replay for reporting, trends, and backfills.
 group.id=analytics-dashboard-v1
 auto.offset.reset=earliest       # start from beginning for full history
 enable.auto.commit=false         # commit only after successful processing
+```
 
 ### alerts-v1 — Real-time Operations 
 Near-real-time monitoring of stock and replenishment signals.
@@ -84,4 +90,18 @@ group.id=alerts-v1
 auto.offset.reset=latest         # only consume new events
 enable.auto.commit=true          # low-latency, best-effort delivery
 auto.commit.interval.ms=1000
+```
 
+## 3. Kafka Producer Configuration
+Shared by all producers (WMS, ERP, Supplier Systems).
+This profile ensures no data loss and no duplicates for inventory and order events.
+
+```properties
+acks=all
+enable.idempotence=true
+retries=2147483647
+linger.ms=5
+batch.size=65536
+compression.type=lz4
+delivery.timeout.ms=120000
+request.timeout.ms=30000
